@@ -1,0 +1,34 @@
+# Create machine learning features
+data = df[["Close", "Volume"]].copy()
+
+for lag in [1, 2, 3, 5, 10]:
+    data[f"close_lag_{lag}"] = data["Close"].shift(lag)
+
+data["return_1"] = data["Close"].pct_change()
+data["return_5"] = data["Close"].pct_change(5)
+data["sma_5"] = data["Close"].rolling(5).mean()
+data["sma_10"] = data["Close"].rolling(10).mean()
+data["sma_20"] = data["Close"].rolling(20).mean()
+data["volatility"] = data["return_1"].rolling(10).std()
+
+features = [c for c in data.columns]
+
+# Training target: next trading day's close
+target = df["Close"].shift(-1)
+
+# Prepare training data
+dataset = data.copy()
+dataset["Target"] = target
+dataset = dataset.replace(
+    [np.inf, -np.inf], np.nan
+).dropna()
+
+X = dataset[features]
+y = dataset["Target"]
+
+split = int(len(dataset) * 0.80)
+
+X_train = X.iloc[:split]
+X_test = X.iloc[split:]
+y_train = y.iloc[:split]
+y_test = y.iloc[split:]
